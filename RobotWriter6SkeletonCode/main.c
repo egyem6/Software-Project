@@ -7,13 +7,21 @@
 
 #define bdrate 115200               /* 115200 baud */
 
+//Function Declerations
 void SendCommands (char *buffer );
+double getTextHeight(); //Prompts user to input a height for the text between 4-10mm
 
 int main()
 {
+    //Varible definition
+    double textHeight; //Defines textHeight as a variable
 
     //char mode[]= {'8','N','1',0};
     char buffer[100];
+
+    //Calls getTextHeight function
+    textHeight=getTextHeight();
+
 
     // If we cannot open the port then give up immediately
     if ( CanRS232PortBeOpened() == -1 )
@@ -81,4 +89,30 @@ void SendCommands (char *buffer )
     WaitForReply();
     Sleep(100); // Can omit this when using the writing robot but has minimal effect
     // getch(); // Omit this once basic testing with emulator has taken place
+}
+
+
+//Function Definitions
+// Function to prompt and validate text height input
+double getTextHeight()
+{
+    double textHeight;
+    int valid=0;
+
+    while (!valid) 
+    {
+        printf("Enter text height in mm (between 4 and 10 mm): "); //Prompts user for an input
+        if (scanf("%lf", &textHeight)!=1) 
+        {
+            printf("Invalid input. Please enter a numeric value.\n");
+            while (getchar()!='\n'); // Clear input buffer
+        } else if (textHeight<4||textHeight>10) //Validates input is within 4-10mm range
+        {
+            printf("Invalid text height. It must be between 4 and 10 mm.\n");
+        } else 
+        {
+            valid=1; // Input is valid
+        }
+    }
+    return textHeight;
 }

@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "c:/Users/edmoo/OneDrive/Documents/School/Year 3/Computer Engineering Mechatronics/Coursework/Software Project/RobotWriter6SkeletonCode",
+      "program": "c:/Users/edmoo/OneDrive/Documents/School/Year 3/Computer Engineering Mechatronics/Coursework/Software Project/RobotWriter6SkeletonCode/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ]
+}
