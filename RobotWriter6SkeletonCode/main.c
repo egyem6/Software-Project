@@ -10,11 +10,12 @@
 //Function Declerations
 void SendCommands (char *buffer );
 double getTextHeight(); //Prompts user to input a height for the text between 4-10mm
+double calculateScaleFactor(double textHeight); //Calculates the scale factor based on the text height
 
 int main()
 {
     //Varible definition
-    double textHeight; //Defines textHeight as a variable
+    double textHeight,scaleFactor; 
 
     //char mode[]= {'8','N','1',0};
     char buffer[100];
@@ -22,6 +23,9 @@ int main()
     //Calls getTextHeight function
     textHeight=getTextHeight();
 
+    //Calls calculateScaleFactor function
+    scaleFactor=calculateScaleFactor(textHeight);
+    printf("Scale Factor: %.4f\n", scaleFactor);
 
     // If we cannot open the port then give up immediately
     if ( CanRS232PortBeOpened() == -1 )
@@ -115,4 +119,9 @@ double getTextHeight()
         }
     }
     return textHeight;
+}
+// Function to calculate the scale factor
+double calculateScaleFactor(double textHeight) 
+{
+    return textHeight / 18.0;
 }
