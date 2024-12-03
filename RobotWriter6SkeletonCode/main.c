@@ -6,17 +6,38 @@
 #include "serial.h"
 
 #define bdrate 115200               /* 115200 baud */
+#define MAX_CHARACTERS 128
+//Strucutre to store font data for each ASCII value
+typedef struct
+{
+    int charCode;
+    int numStrokes;
+    int (*strokeData)[3];
+}  CharacterData;
 
-//Function Declerations
+//Function declerations
 void SendCommands (char *buffer );
 double getTextHeight(); //Prompts user to input a height for the text between 4-10mm
 double calculateScaleFactor(double textHeight); //Calculates the scale factor based on the text height
+CharacterData* loadFontData(const char *filename, int *numCharacters);
+
 
 int main()
 {
     //Varible definition
     double textHeight,scaleFactor; 
+    int numCharacters=0;
 
+    const char *fontFile="SingleStrokeFont.txt"; //Name of font file
+    
+    //Load font data into system
+    CharacterData *fontArray=loadFontData(fontFile, &numCharacters);
+    if (!fontArray)
+    {
+        return 1; //If font loading fails, exit 
+    }
+    printf("Loaded %d characters from font file. \n", numCharacters);
+    
     //char mode[]= {'8','N','1',0};
     char buffer[100];
 
@@ -26,6 +47,8 @@ int main()
     //Calls calculateScaleFactor function
     scaleFactor=calculateScaleFactor(textHeight);
     printf("Scale Factor: %.4f\n", scaleFactor);
+
+    
 
     // If we cannot open the port then give up immediately
     if ( CanRS232PortBeOpened() == -1 )
@@ -123,5 +146,57 @@ double getTextHeight()
 // Function to calculate the scale factor
 double calculateScaleFactor(double textHeight) 
 {
-    return textHeight / 18.0;
+    return textHeight/18.0;
+}
+
+// Function to load font data from a file
+CharacterData* loadFontData(const char *filename, int *numCharacters) 
+{
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        printf("Error: Could not open font file %s\n", filename);
+        return NULL;
+    }
+
+    CharacterData *fontArray=malloc(MAX_CHARACTERS*sizeof(CharacterData));
+    if (!fontArray) {
+        printf("Error: Memory allocation failed.\n");
+        fclose(file);
+        return NULL;
+    }
+
+    *numCharacters=0; // Initialize character count
+    while (!feof(file)) {
+        int marker, charCode, numStrokes;
+
+        // Read marker, charCode, and numStrokes
+        if (fscanf(file, "%d %d %d", &marker, &charCode, &numStrokes)!= 3||marker!=999) 
+        {
+            break;
+        }
+
+        CharacterData *currentChar=&fontArray[*numCharacters];
+        currentChar->charCode=charCode;
+        currentChar->numStrokes=numStrokes;
+        currentChar->strokeData=malloc(numStrokes*sizeof(int[3]));
+        if (!currentChar->strokeData) 
+        {
+            printf("Error: Memory allocation for strokes failed.\n");
+            fclose(file);
+            return NULL;
+        }
+
+        // Read strokes
+        for (int i=0; i < numStrokes; i++) 
+        {
+            fscanf(file, "%d %d %d", &currentChar->strokeData[i][0],
+                   &currentChar->strokeData[i][1],
+                   &currentChar->strokeData[i][2]);
+        }
+
+        (*numCharacters)++;
+    }
+
+    fclose(file);
+    return fontArray;
 }
