@@ -7,6 +7,9 @@
 
 #define bdrate 115200               /* 115200 baud */
 #define MAX_CHARACTERS 128
+#define Line_Spacing 5.0
+#define Max_Width 100
+
 //Strucutre to store font data for each ASCII value
 typedef struct
 {
@@ -20,7 +23,8 @@ void SendCommands (char *buffer );
 double getTextHeight(); //Prompts user to input a height for the text between 4-10mm
 double calculateScaleFactor(double textHeight); //Calculates the scale factor based on the text height
 CharacterData* loadFontData(const char *filename, int *numCharacters);
-
+void processTextFileTest(const char *filename, CharacterData *fontArray, int numCharacters, double scaleFactor);
+void OutputToTerminal(char *buffer);
 
 int main()
 {
@@ -29,7 +33,8 @@ int main()
     int numCharacters=0;
 
     const char *fontFile="SingleStrokeFont.txt"; //Name of font file
-    
+    const char *textfile="test.txt";
+
     //Load font data into system
     CharacterData *fontArray=loadFontData(fontFile, &numCharacters);
     if (!fontArray)
@@ -104,6 +109,9 @@ int main()
     CloseRS232Port();
     printf("Com port now closed\n");
 
+    //Call processTextFileTest function
+    processTextFileTest(textfile, fontArray, numCharacters, scaleFactor);
+
     return (0);
 }
 
@@ -153,13 +161,15 @@ double calculateScaleFactor(double textHeight)
 CharacterData* loadFontData(const char *filename, int *numCharacters) 
 {
     FILE *file = fopen(filename, "r");
-    if (!file) {
+    if (!file) 
+    {
         printf("Error: Could not open font file %s\n", filename);
         return NULL;
     }
 
     CharacterData *fontArray=malloc(MAX_CHARACTERS*sizeof(CharacterData));
-    if (!fontArray) {
+    if (!fontArray) 
+    {
         printf("Error: Memory allocation failed.\n");
         fclose(file);
         return NULL;
@@ -187,7 +197,7 @@ CharacterData* loadFontData(const char *filename, int *numCharacters)
         }
 
         // Read strokes
-        for (int i=0; i < numStrokes; i++) 
+        for (int i=0; i<numStrokes; i++) 
         {
             fscanf(file, "%d %d %d", &currentChar->strokeData[i][0],
                    &currentChar->strokeData[i][1],
@@ -199,4 +209,128 @@ CharacterData* loadFontData(const char *filename, int *numCharacters)
 
     fclose(file);
     return fontArray;
+}
+//Function to process the text file 
+void processTextFileTest(const char *filename, CharacterData *fontArray, int numCharacters, double scaleFactor) 
+{
+    FILE *file=fopen(filename, "r");
+    if (!file) 
+    {
+        printf("Error: Could not open text file %s\n", filename);
+        return;
+    }
+
+    char word[100];       // Buffer for each word
+    double xOffset=0;   // Horizontal position
+    double yOffset=0;   // Vertical position
+    int c;                // Character read from the file
+
+    while ((c=fgetc(file))!=EOF) 
+    {
+        // Handle Line Feed (LF) and Carriage Return (CR)
+        if (c==10) 
+        { // LF (ASCII 10)
+            xOffset=0;               // Reset horizontal offset
+            yOffset-=Line_Spacing+5;   // Move to the next line
+            printf("Line Feed: Moving to next line at Y offset %.2f\n", yOffset);
+            continue;
+        } else if (c==13) 
+        { // CR (ASCII 13)
+            xOffset=0; // Reset horizontal offset
+            printf("Carriage Return: Resetting X offset to %.2f\n", xOffset);
+            continue;
+        }
+
+        // Push back the character if it's part of a word
+        ungetc(c, file);
+
+        // Read the word
+        if (fscanf(file, "%99s", word)!=1) 
+        {
+            break;
+        }
+
+        printf("Processing word: %s\n", word);
+
+        // Calculate word width
+        double wordWidth=0.0;
+        for (int i=0; word[i]!='\0'; i++) 
+        {
+            CharacterData *charData=NULL;
+            for (int j=0; j<numCharacters; j++) 
+            {
+                if (fontArray[j].charCode==word[i]) 
+                {
+                    charData=&fontArray[j];
+                    break;
+                }
+            }
+
+            if (charData) 
+            {
+                wordWidth+=10.0*scaleFactor; // Assume 10mm default width
+            }
+        }
+        wordWidth+=5.0*scaleFactor; // Add spacing for the word
+
+        // Check if the word fits in the current line
+        if (xOffset+wordWidth>Max_Width)
+        {
+            xOffset=0;               // Reset horizontal position
+            yOffset-=Line_Spacing+5;   // Move to the next line
+            printf("Word exceeds line width. Moving to next line at Y offset %.2f\n", yOffset);
+        }
+
+        // Process each letter in the word
+        for (int i=0; word[i]!='\0'; i++) 
+        {
+            CharacterData *charData = NULL;
+            for (int j=0; j<numCharacters; j++) 
+            {
+                if (fontArray[j].charCode==word[i]) 
+                {
+                    charData=&fontArray[j];
+                    break;
+                }
+            }
+
+            if (charData) 
+            {
+                // Generate G-code for each stroke
+                for (int k=0; k<charData->numStrokes; k++) 
+                {
+                    int x=charData->strokeData[k][0];
+                    int y=charData->strokeData[k][1];
+                    int pen=charData->strokeData[k][2];
+
+                    double scaledX=xOffset+x*scaleFactor;
+                    double scaledY=yOffset+y*scaleFactor;
+
+                    char buffer[100];
+                    if (pen==0) 
+                    { // Pen up
+                        sprintf(buffer, "G0 X%.2f Y%.2f\n", scaledX, scaledY);
+                    } else 
+                    { // Pen down
+                        sprintf(buffer, "G1 X%.2f Y%.2f\n", scaledX, scaledY);
+                    }
+                    OutputToTerminal(buffer); // Output G-code to terminal
+                }
+
+                // Update xOffset
+                xOffset+=20.0*scaleFactor; // Increment horizontal position
+            }
+        }
+
+        // Add space after the word
+        xOffset+=5.0*scaleFactor;
+    }
+
+    fclose(file);
+}
+
+//Function to output G-code to terminal window
+void OutputToTerminal(char *buffer)
+{
+    printf("%s", buffer);
 }
