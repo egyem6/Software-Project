@@ -234,7 +234,8 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
             yOffset-=Line_Spacing+5;   // Move to the next line
             printf("Line Feed: Moving to next line at Y offset %.2f\n", yOffset);
             continue;
-        } else if (c==13) 
+        } 
+        else if (c==13) 
         { // CR (ASCII 13)
             xOffset=0; // Reset horizontal offset
             printf("Carriage Return: Resetting X offset to %.2f\n", xOffset);
@@ -252,7 +253,7 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
 
         printf("Processing word: %s\n", word);
 
-        // Calculate word width
+        // Process each letter in the word
         double wordWidth=0.0;
         for (int i=0; word[i]!='\0'; i++) 
         {
@@ -268,7 +269,7 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
 
             if (charData) 
             {
-                wordWidth+=10.0*scaleFactor; // Assume 10mm default width
+                wordWidth+=15.0*scaleFactor; // Assume 15mm default width
             }
         }
         wordWidth+=5.0*scaleFactor; // Add spacing for the word
