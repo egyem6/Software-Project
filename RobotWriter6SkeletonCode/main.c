@@ -13,7 +13,7 @@
 //Strucutre to store font data for each ASCII value
 typedef struct
 {
-    int charCode;
+    int ASCIICode;
     int numStrokes;
     int (*strokeData)[3];
 }  CharacterData;
@@ -25,6 +25,7 @@ double calculateScaleFactor(double textHeight); //Calculates the scale factor ba
 CharacterData* loadFontData(const char *filename, int *numCharacters);
 void processTextFileTest(const char *filename, CharacterData *fontArray, int numCharacters, double scaleFactor);
 void OutputToTerminal(char *buffer);
+void freeMemory(CharacterData *fontArray, int numCharacters);
 
 int main()
 {
@@ -112,6 +113,9 @@ int main()
     //Call processTextFileTest function
     processTextFileTest(textfile, fontArray, numCharacters, scaleFactor);
 
+    // Free allocated memory before exiting
+    freeMemory(fontArray, numCharacters);
+
     return (0);
 }
 
@@ -140,7 +144,7 @@ double getTextHeight()
         if (scanf("%lf", &textHeight)!=1) 
         {
             printf("Invalid input. Please enter a numeric value.\n");
-            while (getchar()!='\n'); // Clear input buffer
+            while (getchar()!='\n'); 
         } else if (textHeight<4||textHeight>10) //Validates input is within 4-10mm range
         {
             printf("Invalid text height. It must be between 4 and 10 mm.\n");
@@ -176,17 +180,18 @@ CharacterData* loadFontData(const char *filename, int *numCharacters)
     }
 
     *numCharacters=0; // Initialize character count
-    while (!feof(file)) {
-        int marker, charCode, numStrokes;
+    while (!feof(file)) 
+    {
+        int marker, ASCIICode, numStrokes;
 
-        // Read marker, charCode, and numStrokes
-        if (fscanf(file, "%d %d %d", &marker, &charCode, &numStrokes)!= 3||marker!=999) 
+        // Read marker, ASCIICode, and numStrokes
+        if (fscanf(file, "%d %d %d", &marker, &ASCIICode, &numStrokes)!= 3||marker!=999) 
         {
             break;
         }
 
         CharacterData *currentChar=&fontArray[*numCharacters];
-        currentChar->charCode=charCode;
+        currentChar->ASCIICode=ASCIICode;
         currentChar->numStrokes=numStrokes;
         currentChar->strokeData=malloc(numStrokes*sizeof(int[3]));
         if (!currentChar->strokeData) 
@@ -220,10 +225,10 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
         return;
     }
 
-    char word[100];       // Buffer for each word
-    double xOffset=0;   // Horizontal position
-    double yOffset=0;   // Vertical position
-    int c;                // Character read from the file
+    char word[100];   // Buffer for each word
+    double xOffset=0; // Horizontal position
+    double yOffset=0; // Vertical position
+    int c;            // Character read from the file
 
     while ((c=fgetc(file))!=EOF) 
     {
@@ -260,7 +265,7 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
             CharacterData *charData=NULL;
             for (int j=0; j<numCharacters; j++) 
             {
-                if (fontArray[j].charCode==word[i]) 
+                if (fontArray[j].ASCIICode==word[i]) 
                 {
                     charData=&fontArray[j];
                     break;
@@ -269,7 +274,7 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
 
             if (charData) 
             {
-                wordWidth+=15.0*scaleFactor; // Assume 15mm default width
+                wordWidth+=15.0*scaleFactor; 
             }
         }
         wordWidth+=5.0*scaleFactor; // Add spacing for the word
@@ -288,7 +293,7 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
             CharacterData *charData = NULL;
             for (int j=0; j<numCharacters; j++) 
             {
-                if (fontArray[j].charCode==word[i]) 
+                if (fontArray[j].ASCIICode==word[i]) 
                 {
                     charData=&fontArray[j];
                     break;
@@ -334,4 +339,26 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
 void OutputToTerminal(char *buffer)
 {
     printf("%s", buffer);
+}
+
+//Function to free allocated memory
+void freeMemory(CharacterData *fontArray, int numCharacters) 
+{
+    if (!fontArray) 
+    {
+        return; // If fontArray is NULL, no need to free
+    }
+
+    // Free each strokeData array
+    for (int i = 0; i < numCharacters; i++) 
+    {
+        if (fontArray[i].strokeData) 
+        {
+            free(fontArray[i].strokeData);
+        }
+    }
+
+    // Free the fontArray itself
+    free(fontArray);
+    printf("Memory for font data has been successfully freed.\n");
 }
