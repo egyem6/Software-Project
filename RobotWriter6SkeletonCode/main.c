@@ -113,8 +113,7 @@ int main()
     //Call processTextFileTest function
     processTextFileTest(textfile, fontArray, numCharacters, scaleFactor);
 
-    // Free allocated memory before exiting
-    freeMemory(fontArray, numCharacters);
+    sprintf (buffer, "G0 X0 Y0\n"); //Puts the pen in the 0,0 position with pen up
 
     return (0);
 }
@@ -362,3 +361,5 @@ void freeMemory(CharacterData *fontArray, int numCharacters)
     free(fontArray);
     printf("Memory for font data has been successfully freed.\n");
 }
+
+
