@@ -7,7 +7,6 @@
 
 #define bdrate 115200               /* 115200 baud */
 #define Max_Characters 128
-//#define Line_Spacing 5.0
 #define Max_Width 100
 
 //Strucutre to store font data for each ASCII value
@@ -85,27 +84,7 @@ int main()
     sprintf (buffer, "S0\n");
     SendCommands(buffer);
 
-
-    // These are sample commands to draw out some information - these are the ones you will be generating.
-    /*sprintf (buffer, "G0 X-13.41849 Y0.000\n");
-    SendCommands(buffer);
-    sprintf (buffer, "S1000\n");
-    SendCommands(buffer);
-    sprintf (buffer, "G1 X-13.41849 Y-4.28041\n");
-    SendCommands(buffer);
-    sprintf (buffer, "G1 X-13.41849 Y0.0000\n");
-    SendCommands(buffer);
-    sprintf (buffer, "G1 X-13.41089 Y4.28041\n");
-    SendCommands(buffer);
-    sprintf (buffer, "S0\n");
-    SendCommands(buffer);
-    sprintf (buffer, "G0 X-7.17524 Y0\n");
-    SendCommands(buffer);
-    sprintf (buffer, "S1000\n");
-    SendCommands(buffer);
-    sprintf (buffer, "G0 X0 Y0\n");
-    SendCommands(buffer);
-*/
+ 
     //Call processTextFileTest function
     processTextFileTest(textfile, fontArray, numCharacters, scaleFactor, textHeight);
 
@@ -216,7 +195,7 @@ CharacterData* loadFontData(const char *filename, int *numCharacters)
     fclose(file);
     return fontArray;
 }
-//Function to process the text file 
+//Function to process the text file
 void processTextFileTest(const char *filename, CharacterData *fontArray, int numCharacters, double scaleFactor, double textHeight) 
 {
     FILE *file=fopen(filename, "r");
