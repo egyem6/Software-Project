@@ -6,8 +6,8 @@
 #include "serial.h"
 
 #define bdrate 115200               /* 115200 baud */
-#define MAX_CHARACTERS 128
-#define Line_Spacing 5.0
+#define Max_Characters 128
+//#define Line_Spacing 5.0
 #define Max_Width 100
 
 //Strucutre to store font data for each ASCII value
@@ -23,7 +23,7 @@ void SendCommands (char *buffer );
 double getTextHeight(); //Prompts user to input a height for the text between 4-10mm
 double calculateScaleFactor(double textHeight); //Calculates the scale factor based on the text height
 CharacterData* loadFontData(const char *filename, int *numCharacters);
-void processTextFileTest(const char *filename, CharacterData *fontArray, int numCharacters, double scaleFactor);
+void processTextFileTest(const char *filename, CharacterData *fontArray, int numCharacters, double scaleFactor, double textHeight);
 void OutputToTerminal(char *buffer);
 void freeMemory(CharacterData *fontArray, int numCharacters);
 
@@ -34,7 +34,7 @@ int main()
     int numCharacters=0;
 
     const char *fontFile="SingleStrokeFont.txt"; //Name of font file
-    const char *textfile="test.txt";
+    const char *textfile="RobotTesting.txt";
 
     //Load font data into system
     CharacterData *fontArray=loadFontData(fontFile, &numCharacters);
@@ -87,7 +87,7 @@ int main()
 
 
     // These are sample commands to draw out some information - these are the ones you will be generating.
-    sprintf (buffer, "G0 X-13.41849 Y0.000\n");
+    /*sprintf (buffer, "G0 X-13.41849 Y0.000\n");
     SendCommands(buffer);
     sprintf (buffer, "S1000\n");
     SendCommands(buffer);
@@ -105,15 +105,17 @@ int main()
     SendCommands(buffer);
     sprintf (buffer, "G0 X0 Y0\n");
     SendCommands(buffer);
+*/
+    //Call processTextFileTest function
+    processTextFileTest(textfile, fontArray, numCharacters, scaleFactor, textHeight);
+
+    //Put pen in the 0,0 position with pen up
+    sprintf (buffer, "G0 X0 Y0\n"); //Replace with S with G during testing
 
     // Before we exit the program we need to close the COM port
     CloseRS232Port();
     printf("Com port now closed\n");
 
-    //Call processTextFileTest function
-    processTextFileTest(textfile, fontArray, numCharacters, scaleFactor);
-
-    sprintf (buffer, "G0 X0 Y0\n"); //Puts the pen in the 0,0 position with pen up
 
     return (0);
 }
@@ -170,7 +172,7 @@ CharacterData* loadFontData(const char *filename, int *numCharacters)
         return NULL;
     }
 
-    CharacterData *fontArray=malloc(MAX_CHARACTERS*sizeof(CharacterData));
+    CharacterData *fontArray=malloc(Max_Characters*sizeof(CharacterData));
     if (!fontArray) 
     {
         printf("Error: Memory allocation failed.\n");
@@ -215,7 +217,7 @@ CharacterData* loadFontData(const char *filename, int *numCharacters)
     return fontArray;
 }
 //Function to process the text file 
-void processTextFileTest(const char *filename, CharacterData *fontArray, int numCharacters, double scaleFactor) 
+void processTextFileTest(const char *filename, CharacterData *fontArray, int numCharacters, double scaleFactor, double textHeight) 
 {
     FILE *file=fopen(filename, "r");
     if (!file) 
@@ -227,6 +229,7 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
     char word[100];   // Buffer for each word
     double xOffset=0; // Horizontal position
     double yOffset=0; // Vertical position
+    double Line_Spacing=textHeight+5.0;
     int c;            // Character read from the file
 
     while ((c=fgetc(file))!=EOF) 
@@ -235,7 +238,7 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
         if (c==10) 
         { // LF (ASCII 10)
             xOffset=0;               // Reset horizontal offset
-            yOffset-=Line_Spacing+5;   // Move to the next line
+            yOffset-=Line_Spacing;   // Move to the next line
             printf("Line Feed: Moving to next line at Y offset %.2f\n", yOffset);
             continue;
         } 
@@ -273,7 +276,7 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
 
             if (charData) 
             {
-                wordWidth+=15.0*scaleFactor; 
+                wordWidth+=17.0*scaleFactor; 
             }
         }
         wordWidth+=5.0*scaleFactor; // Add spacing for the word
@@ -282,7 +285,7 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
         if (xOffset+wordWidth>Max_Width)
         {
             xOffset=0;               // Reset horizontal position
-            yOffset-=Line_Spacing+5;   // Move to the next line
+            yOffset-=Line_Spacing;   // Move to the next line
             printf("Word exceeds line width. Moving to next line at Y offset %.2f\n", yOffset);
         }
 
@@ -313,13 +316,16 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
 
                     char buffer[100];
                     if (pen==0) 
-                    { // Pen up
+                    { // Pen up, Replace S0 with G0 during testing
                         sprintf(buffer, "G0 X%.2f Y%.2f\n", scaledX, scaledY);
                     } else 
-                    { // Pen down
+                    { // Pen down, Replace S1000 with G1 during testing
                         sprintf(buffer, "G1 X%.2f Y%.2f\n", scaledX, scaledY);
                     }
                     OutputToTerminal(buffer); // Output G-code to terminal
+
+                    //Send G-code commands 
+                    //SendCommands(buffer); //Comment out for testing
                 }
 
                 // Update xOffset
