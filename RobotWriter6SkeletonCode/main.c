@@ -6,8 +6,8 @@
 #include "serial.h"
 
 #define bdrate 115200               /* 115200 baud */
-#define Max_Characters 128
-#define Max_Width 100
+#define Max_Characters 128          //128 ASCII characers
+#define Max_Width 100               //Maximum 100mm width 
 
 //Strucutre to store font data for each ASCII value
 typedef struct
@@ -21,8 +21,12 @@ typedef struct
 void SendCommands (char *buffer );
 double getTextHeight(); //Prompts user to input a height for the text between 4-10mm
 double calculateScaleFactor(double textHeight); //Calculates the scale factor based on the text height
-CharacterData* loadFontData(const char *filename, int *numCharacters);
-void processTextFileTest(const char *filename, CharacterData *fontArray, int numCharacters, double scaleFactor, double textHeight);
+CharacterData* loadFontData(const char *filename, int *numCharacters); //Organises font data
+void processText(const char *filename, CharacterData *fontArray, int numCharacters, double scaleFactor, double textHeight); //Processes text file
+//NOTE: The function to process the text file must be altered when changing between testing on the robot and testing on the emulator. 
+//The section within the function dedicated to the generation of G code must be altered, the G0/G1 outputs need to change and the SendCommands function needs to be uncommented. 
+//The changes are further discussed within the function...
+
 void OutputToTerminal(char *buffer);
 void freeMemory(CharacterData *fontArray, int numCharacters);
 
@@ -32,8 +36,11 @@ int main()
     double textHeight,scaleFactor; 
     int numCharacters=0;
 
-    const char *fontFile="SingleStrokeFont.txt"; //Name of font file
-    const char *textfile="RobotTesting.txt";
+    //Name of font file
+    const char *fontFile="SingleStrokeFont.txt"; 
+
+    //Name of text file to be written by robot (alter name as neccesary)
+    const char *textfile="test.txt"; 
 
     //Load font data into system
     CharacterData *fontArray=loadFontData(fontFile, &numCharacters);
@@ -77,23 +84,27 @@ int main()
     printf ("\nThe robot is now ready to draw\n");
 
         //These commands get the robot into 'ready to draw mode' and need to be sent before any writing commands
-    sprintf (buffer, "G1 X0 Y0 F1000\n");
+    sprintf (buffer, "G1 X0 Y0 F1000\n"); //When running for the emulator, the user must hit enter 3 times at this point before the Gcode is output to the terminal
     SendCommands(buffer);
     sprintf (buffer, "M3\n");
     SendCommands(buffer);
     sprintf (buffer, "S0\n");
     SendCommands(buffer);
 
- 
+    
+
     //Call processTextFileTest function
-    processTextFileTest(textfile, fontArray, numCharacters, scaleFactor, textHeight);
+    processText(textfile, fontArray, numCharacters, scaleFactor, textHeight);
 
     //Put pen in the 0,0 position with pen up
-    sprintf (buffer, "G0 X0 Y0\n"); //Replace with S with G during testing
+    sprintf (buffer, "G0 X0 Y0\n"); //Replace S0 with G0 during testing
 
     // Before we exit the program we need to close the COM port
     CloseRS232Port();
     printf("Com port now closed\n");
+
+    //Free allocated memory before exiting
+    freeMemory(fontArray, numCharacters);
 
 
     return (0);
@@ -144,14 +155,14 @@ double calculateScaleFactor(double textHeight)
 // Function to load font data from a file
 CharacterData* loadFontData(const char *filename, int *numCharacters) 
 {
-    FILE *file = fopen(filename, "r");
+    FILE *file = fopen(filename, "r"); //Check if font data file opened corectly
     if (!file) 
     {
         printf("Error: Could not open font file %s\n", filename);
         return NULL;
     }
 
-    CharacterData *fontArray=malloc(Max_Characters*sizeof(CharacterData));
+    CharacterData *fontArray=malloc(Max_Characters*sizeof(CharacterData)); //Check if memorey allocation for fontarray was correct
     if (!fontArray) 
     {
         printf("Error: Memory allocation failed.\n");
@@ -174,7 +185,7 @@ CharacterData* loadFontData(const char *filename, int *numCharacters)
         currentChar->ASCIICode=ASCIICode;
         currentChar->numStrokes=numStrokes;
         currentChar->strokeData=malloc(numStrokes*sizeof(int[3]));
-        if (!currentChar->strokeData) 
+        if (!currentChar->strokeData) //Check if memory allocation for stroke data was successfull
         {
             printf("Error: Memory allocation for strokes failed.\n");
             fclose(file);
@@ -196,12 +207,13 @@ CharacterData* loadFontData(const char *filename, int *numCharacters)
     return fontArray;
 }
 //Function to process the text file
-void processTextFileTest(const char *filename, CharacterData *fontArray, int numCharacters, double scaleFactor, double textHeight) 
+void processText(const char *filename, CharacterData *fontArray, int numCharacters, double scaleFactor, double textHeight) 
 {
+    //Check if file opened corectly
     FILE *file=fopen(filename, "r");
     if (!file) 
     {
-        printf("Error: Could not open text file %s\n", filename);
+        printf("Error: Could not open text file %s\n", filename); 
         return;
     }
 
@@ -255,10 +267,10 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
 
             if (charData) 
             {
-                wordWidth+=17.0*scaleFactor; 
+                wordWidth+=18.0*scaleFactor; 
             }
         }
-        wordWidth+=5.0*scaleFactor; // Add spacing for the word
+        wordWidth+=18.0*scaleFactor; // Add spacing for the word
 
         // Check if the word fits in the current line
         if (xOffset+wordWidth>Max_Width)
@@ -295,16 +307,17 @@ void processTextFileTest(const char *filename, CharacterData *fontArray, int num
 
                     char buffer[100];
                     if (pen==0) 
-                    { // Pen up, Replace S0 with G0 during testing
+                    { // Pen up, Replace G0 with S0 during robot testing
                         sprintf(buffer, "G0 X%.2f Y%.2f\n", scaledX, scaledY);
                     } else 
-                    { // Pen down, Replace S1000 with G1 during testing
+                    { // Pen down, Replace G1 with S1000 during robot testing
                         sprintf(buffer, "G1 X%.2f Y%.2f\n", scaledX, scaledY);
                     }
                     OutputToTerminal(buffer); // Output G-code to terminal
 
                     //Send G-code commands 
-                    //SendCommands(buffer); //Comment out for testing
+                    //SendCommands(buffer); //This sends the G code commands to the robot, must be uncommented out for robot testing. 
+                    //When using the emulatorit can be left as a comment.
                 }
 
                 // Update xOffset
