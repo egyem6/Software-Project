@@ -270,7 +270,7 @@ void processText(const char *filename, CharacterData *fontArray, int numCharacte
                 wordWidth+=18.0*scaleFactor; 
             }
         }
-        wordWidth+=18.0*scaleFactor; // Add spacing for the word
+        wordWidth+=18.0*scaleFactor; //Add spacing for the word
 
         // Check if the word fits in the current line
         if (xOffset+wordWidth>Max_Width)
@@ -317,7 +317,7 @@ void processText(const char *filename, CharacterData *fontArray, int numCharacte
 
                     //Send G-code commands 
                     //SendCommands(buffer); //This sends the G code commands to the robot, must be uncommented out for robot testing. 
-                    //When using the emulatorit can be left as a comment.
+                    //When using the emulator it can be left as a comment.
                 }
 
                 // Update xOffset
